@@ -25,6 +25,10 @@ const NOISE_MERCHANTS = [
   { name: "Shell", category: "gas" as const, range: [28, 62] as const },
   { name: "Spotify", category: "subscription" as const, range: [11.99, 11.99] as const },
   { name: "Netflix", category: "subscription" as const, range: [15.49, 15.49] as const },
+  // "Zombie" subscriptions — things heavy users typically forget about.
+  { name: "Peloton App", category: "subscription" as const, range: [12.99, 12.99] as const },
+  { name: "Adobe CC", category: "subscription" as const, range: [22.99, 22.99] as const },
+  { name: "NY Times", category: "subscription" as const, range: [18.0, 18.0] as const },
   { name: "Lyft", category: "rideshare" as const, range: [9, 24] as const },
   { name: "Amazon", category: "retail" as const, range: [12, 78] as const },
   { name: "ConEd", category: "utilities" as const, range: [78, 115] as const },

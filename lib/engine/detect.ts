@@ -136,7 +136,11 @@ export function detectLeaks(transactions: Transaction[], opts: DetectOptions = {
 
   const leaks: Leak[] = [];
   for (const [key, txns] of groups) {
-    if (txns.length < minOccurrences) continue;
+    // Subscriptions are recurring by definition — 1 observation in 30d = active
+    // monthly charge. Everything else needs repeat purchase evidence.
+    const isSubscription = txns[0].category === "subscription";
+    const occurrenceFloor = isSubscription ? 1 : minOccurrences;
+    if (txns.length < occurrenceFloor) continue;
     const totalSpend = txns.reduce((s, t) => s + t.amount, 0);
     const avgTicket = totalSpend / txns.length;
     // Monthly projection: for a 30d window, totalSpend IS the monthly projection.

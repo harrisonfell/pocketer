@@ -122,15 +122,48 @@ const FOOD_ALTS: FoodAlt[] = [
   },
 ];
 
+// Subscription alternatives: parameterized to the specific leak so copy reads naturally.
+function subscriptionAlternativesFor(leak: Leak): Alternative[] {
+  const monthly = leak.monthlyProjection;
+  const merchant = leak.merchant;
+  return [
+    {
+      id: `cancel_${leak.id}`,
+      kind: "cancel",
+      name: `Cancel ${merchant}`,
+      blurb: `If you can't remember the last time you opened it, it's probably time.`,
+      monthlyCost: 0,
+      prepMinutes: 2,
+      reviewScore: 5,
+      tags: ["zero cost", "2 min"],
+      ctaLabel: `Cancel ${merchant}`,
+      estSavingsVsLeak: (l) => l.monthlyProjection,
+    },
+    {
+      id: `downgrade_${leak.id}`,
+      kind: "subscription_swap",
+      name: `${merchant} — downgrade tier`,
+      blurb: `Most services have a cheaper tier you won't notice losing.`,
+      monthlyCost: Math.max(0, Math.round(monthly * 0.4 * 100) / 100),
+      prepMinutes: 3,
+      reviewScore: 4,
+      tags: ["keep using it", "lower price"],
+      ctaLabel: "Switch tiers",
+      estSavingsVsLeak: (l) => Math.round(l.monthlyProjection * 0.6),
+    },
+  ];
+}
+
 export const ALTERNATIVES: Alternative[] = FOOD_ALTS;
 
-export function alternativesForCategory(category: Category): Alternative[] {
+export function alternativesForCategory(category: Category, leak?: Leak): Alternative[] {
   if (category === "food_delivery") return ALTERNATIVES;
+  if (category === "subscription" && leak) return subscriptionAlternativesFor(leak);
   return [];
 }
 
 export function rankAlternatives(leak: Leak): Alternative[] {
-  const pool = alternativesForCategory(leak.category);
+  const pool = alternativesForCategory(leak.category, leak);
   // Only surface alternatives that actually save money against this leak.
   // If every alt costs more than the leak, we'd rather say nothing than lie.
   const viable = pool.filter((alt) => alt.estSavingsVsLeak(leak) > 0);

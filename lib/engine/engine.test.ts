@@ -44,11 +44,11 @@ describe("detectLeaks", () => {
     expect(delivery!.monthlyProjection).toBeGreaterThan(100);
   });
 
-  it("returns leaks sorted by monthly projection desc", () => {
+  it("returns leaks sorted by achievable savings desc", () => {
     const txns = generateTransactions("heavy_delivery");
     const leaks = detectLeaks(txns);
     for (let i = 1; i < leaks.length; i++) {
-      expect(leaks[i - 1].monthlyProjection).toBeGreaterThanOrEqual(leaks[i].monthlyProjection);
+      expect(leaks[i - 1].savingsPotential).toBeGreaterThanOrEqual(leaks[i].savingsPotential);
     }
   });
 
@@ -115,14 +115,31 @@ describe("suggestAlternatives / rankAlternatives", () => {
     expect(savings).toBeGreaterThan(0);
   });
 
-  it("returns empty list for categories with no alternatives yet", () => {
+  it("produces cancel + downgrade for subscription leaks", () => {
     const txns = generateTransactions("heavy_delivery");
     const leaks = detectLeaks(txns);
-    const subLeak = leaks.find((l) => l.category !== "food_delivery");
+    const subLeak = leaks.find((l) => l.category === "subscription");
     if (subLeak) {
       const suggested = suggestAlternatives(subLeak);
-      expect(suggested).toEqual([]);
+      expect(suggested.length).toBeGreaterThanOrEqual(1);
+      // Cancel should be top since it has the highest savings (100%).
+      expect(suggested[0].kind).toBe("cancel");
     }
+  });
+});
+
+describe("subscription wedge", () => {
+  it("detects subscriptions as leaks with a single monthly observation", () => {
+    const txns = generateTransactions("heavy_delivery");
+    const leaks = detectLeaks(txns);
+    const subs = leaks.filter((l) => l.category === "subscription");
+    expect(subs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("light archetype now has meaningful savings via subscriptions", () => {
+    const leaks = detectLeaks(generateTransactions("light_delivery"));
+    const totalSavings = leaks.reduce((s, l) => s + l.savingsPotential, 0);
+    expect(totalSavings).toBeGreaterThan(30);
   });
 });
 

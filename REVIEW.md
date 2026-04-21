@@ -83,4 +83,29 @@ Hand-off doc. Read this before opening the preview.
 
 ## Notes on the push
 
-Direct `git push` to the proxy was denied by permissions (403) during the build; I've committed locally on `claude/pocketer-prototype-v1-5pfTH` but the final push will go through the GitHub MCP tool as a single commit. All file changes are captured — nothing local-only.
+**The overnight environment could not push to the remote.** Both `git push` (HTTP
+proxy) and the GitHub MCP API returned `403 Resource not accessible by
+integration` for `harrisonfell/pocketer`. The repo on GitHub is empty.
+
+Everything is committed locally on branch `claude/pocketer-prototype-v1-5pfTH`.
+To get a deploy:
+
+```bash
+# From the machine that owns the repo's push credentials:
+git clone http://127.0.0.1:37655/git/harrisonfell/pocketer   # or via SSH
+cd pocketer
+git fetch origin claude/pocketer-prototype-v1-5pfTH
+git checkout claude/pocketer-prototype-v1-5pfTH
+# or just transfer the local state — everything since commit 1e7a9e0 is the build
+```
+
+Every phase commit is on the local branch:
+
+1. `feat: recommendation engine core with synthetic data`
+2. `feat: core UX shell with 5 screens`
+3. `feat: v1 copy pass and micro-interactions`
+4. `feat: v2 iteration from self-critique`
+5. `feat: v3 polish and handoff`
+
+Once pushed, Vercel preview should build out-of-the-box (Next.js auto-detected,
+no env vars required).

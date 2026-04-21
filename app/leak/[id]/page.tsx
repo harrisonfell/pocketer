@@ -159,7 +159,7 @@ export default function LeakDetail() {
                 <ThumbsDown size={22} />
               </button>
               <Button size="lg" block onClick={accept}>
-                Try {current.name.split("—")[0].trim()} for a week
+                {current.ctaLabel}
               </Button>
             </div>
           )}
