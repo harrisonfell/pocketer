@@ -3,22 +3,26 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Info } from "lucide-react";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { CategoryIcon } from "@/components/category-icon";
 import { RatingControl, RatingLabel } from "@/components/rating-control";
-import { CountUp } from "@/components/count-up";
+import { FitPips, FitBadge, FitRing } from "@/components/fit-score";
 import { useSession } from "@/components/session-provider";
 import { generateTransactions } from "@/lib/engine";
-import { aggregate, aggregateByMerchant } from "@/lib/ratings";
+import { scoreTransaction, summarize, FIT_LABELS } from "@/lib/scoring";
+import type { FitScore } from "@/lib/scoring";
 import { formatMoney } from "@/lib/utils";
 import type { Category, Transaction } from "@/lib/engine/types";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "unrated" | "food_delivery" | "subscription" | "coffee";
+type Filter = "all" | "habit" | "swap" | "unrated" | Category;
 
 const FILTERS: { id: Filter; label: string; cat?: Category }[] = [
   { id: "all", label: "All" },
+  { id: "habit", label: "Habit" },
+  { id: "swap", label: "Swap-worthy" },
   { id: "unrated", label: "Unrated" },
   { id: "food_delivery", label: "Food delivery", cat: "food_delivery" },
   { id: "subscription", label: "Subscriptions", cat: "subscription" },
@@ -29,6 +33,7 @@ export default function PurchasesPage() {
   const { hydrated, archetype, ratings } = useSession();
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
+  const [detailFor, setDetailFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (hydrated && !archetype) router.replace("/");
@@ -39,102 +44,87 @@ export default function PurchasesPage() {
     [archetype]
   );
 
-  const stats = useMemo(() => aggregate(txns, ratings), [txns, ratings]);
-  const byMerchant = useMemo(
-    () => aggregateByMerchant(txns, ratings),
-    [txns, ratings]
-  );
+  const summary = useMemo(() => summarize(txns, ratings), [txns, ratings]);
 
-  // Highest-regret merchant — the "your patterns" insight.
-  const topRegret = useMemo(() => {
-    let best: { merchant: string; regret: number; rated: number } | null = null;
-    for (const [m, s] of byMerchant) {
-      if (s.rated < 2) continue;
-      if (!best || s.regret > best.regret) {
-        best = { merchant: m, regret: s.regret, rated: s.rated };
-      }
+  // Per-tx score, cached via useMemo so it doesn't recompute per row render.
+  const scores = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof scoreTransaction>>();
+    for (const t of txns) {
+      map.set(t.id, scoreTransaction(t, txns, ratings[t.id]));
     }
-    return best;
-  }, [byMerchant]);
+    return map;
+  }, [txns, ratings]);
 
   const filtered = useMemo(() => {
-    let list = txns;
-    if (filter === "unrated") {
-      list = txns.filter((t) => !ratings[t.id]);
-    } else if (filter !== "all") {
-      const spec = FILTERS.find((f) => f.id === filter);
-      if (spec?.cat) list = txns.filter((t) => t.category === spec.cat);
+    if (filter === "all") return txns;
+    if (filter === "unrated") return txns.filter((t) => !ratings[t.id]);
+    if (filter === "habit") {
+      return txns.filter((t) => (scores.get(t.id)?.value ?? 3) === 1);
     }
-    return list;
-  }, [txns, filter, ratings]);
+    if (filter === "swap") {
+      return txns.filter((t) => (scores.get(t.id)?.value ?? 3) === 2);
+    }
+    const spec = FILTERS.find((f) => f.id === filter);
+    if (spec?.cat) return txns.filter((t) => t.category === spec.cat);
+    return txns;
+  }, [txns, filter, ratings, scores]);
 
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
-  if (!hydrated) return <Shell><div className="px-5 pt-16" /></Shell>;
+  if (!hydrated)
+    return (
+      <Shell>
+        <div className="px-5 pt-16" />
+      </Shell>
+    );
 
   return (
     <Shell>
       <div className="px-5 pb-8 pt-12 safe-top">
         <p className="text-micro text-ink-40 dark:text-snow-60">PURCHASES</p>
-        <h1 className="mt-2 text-title1 text-ink dark:text-snow">
-          Last 30 days
-        </h1>
+        <h1 className="mt-2 text-title1 text-ink dark:text-snow">Last 30 days</h1>
 
-        {/* Headline insight */}
+        {/* Headline aggregate — the app's read on your month */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.55, delay: 0.1 }}
           className="mt-5"
         >
-          <Card tone={stats.rated > 0 ? "icy" : "default"}>
-            {stats.rated > 0 ? (
-              <>
-                <p className="text-micro text-baltic dark:text-icy">
-                  HOW YOU&apos;RE FEELING
-                </p>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-display nums text-ink dark:text-snow">
-                    <CountUp to={stats.worthItPct} prefix="" suffix="%" duration={0.9} />
+          <Card tone="icy">
+            <div className="flex items-center gap-5">
+              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center text-baltic dark:text-icy">
+                <FitRing average={summary.average} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="nums text-[28px] font-extrabold leading-none text-ink dark:text-snow">
+                    {summary.average.toFixed(1)}
                   </span>
-                  <span className="text-callout text-ink-60 dark:text-snow-60">
-                    worth it
+                  <span className="mt-0.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-40 dark:text-snow-60">
+                    of 5
                   </span>
                 </div>
-                <p className="mt-1 text-callout text-ink-60 dark:text-snow-60">
-                  {stats.rated} of {stats.total} rated · {stats.regret}{" "}
-                  {stats.regret === 1 ? "regret" : "regrets"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-micro text-baltic dark:text-icy">
+                  YOUR POCKETER FIT
                 </p>
-                <RatingBar stats={stats} />
-                {topRegret && topRegret.regret >= 2 && (
-                  <p className="mt-4 text-caption text-ink-60 dark:text-snow-60">
-                    <span className="text-baltic dark:text-icy font-semibold">
-                      {topRegret.merchant}
-                    </span>{" "}
-                    gets your &quot;regret&quot; tag the most —{" "}
-                    {topRegret.regret} of {topRegret.rated}.
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-micro text-ink-40 dark:text-snow-60">
-                  RATE AS YOU GO
+                <p className="mt-1 text-title2 text-ink dark:text-snow">
+                  {summary.label}
                 </p>
-                <p className="mt-2 text-headline text-ink dark:text-snow">
-                  Tap ✓ / ~ / ✕ on anything below.
+                <p className="mt-1 text-caption text-ink-60 dark:text-snow-60">
+                  {summary.count} purchases scored. Taps on any row adjust.
                 </p>
-                <p className="mt-1 text-callout text-ink-60 dark:text-snow-60">
-                  We learn what&apos;s worth it to you — and stop suggesting
-                  swaps for things you&apos;d actually miss.
-                </p>
-              </>
-            )}
+              </div>
+            </div>
+
+            <DistributionBar dist={summary.distribution} total={summary.count} />
           </Card>
         </motion.div>
 
+        <ScoreLegend />
+
         {/* Filter chips */}
-        <div className="mt-6 -mx-5 overflow-x-auto noscroll px-5">
+        <div className="mt-5 -mx-5 overflow-x-auto noscroll px-5">
           <div className="flex gap-2">
             {FILTERS.map((f) => {
               const active = f.id === filter;
@@ -156,22 +146,35 @@ export default function PurchasesPage() {
           </div>
         </div>
 
-        {/* Transaction list, grouped by day */}
-        <section className="mt-6 space-y-6">
+        {/* Transaction list */}
+        <section className="mt-5 space-y-6">
           {grouped.map(({ key, label, items }) => (
             <div key={key}>
               <p className="text-micro text-ink-40 dark:text-snow-60">{label}</p>
               <ul className="mt-2 space-y-2">
-                {items.map((tx, i) => (
-                  <motion.li
-                    key={tx.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(0.04 * i, 0.25), duration: 0.3 }}
-                  >
-                    <TxRow tx={tx} />
-                  </motion.li>
-                ))}
+                {items.map((tx, i) => {
+                  const sc = scores.get(tx.id)!;
+                  return (
+                    <motion.li
+                      key={tx.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: Math.min(0.03 * i, 0.2),
+                        duration: 0.3,
+                      }}
+                    >
+                      <TxRow
+                        tx={tx}
+                        score={sc}
+                        open={detailFor === tx.id}
+                        onToggle={() =>
+                          setDetailFor((prev) => (prev === tx.id ? null : tx.id))
+                        }
+                      />
+                    </motion.li>
+                  );
+                })}
               </ul>
             </div>
           ))}
@@ -186,9 +189,27 @@ export default function PurchasesPage() {
   );
 }
 
-function TxRow({ tx }: { tx: Transaction }) {
+function TxRow({
+  tx,
+  score,
+  open,
+  onToggle,
+}: {
+  tx: Transaction;
+  score: { value: FitScore; label: string; reason: string };
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const dimmed = score.value <= 2; // visually surface habit / swap-worthy
   return (
-    <div className="rounded-2xl border border-ink-5 bg-white p-3.5 transition-colors dark:border-white/5 dark:bg-[color:var(--surface)]">
+    <div
+      className={cn(
+        "rounded-2xl border p-3.5 transition-colors",
+        dimmed
+          ? "border-ink-10 bg-ink-5/60 dark:border-white/10 dark:bg-white/5"
+          : "border-ink-5 bg-white dark:border-white/5 dark:bg-[color:var(--surface)]"
+      )}
+    >
       <div className="flex items-center gap-3">
         <CategoryIcon category={tx.category} size={40} />
         <div className="min-w-0 flex-1">
@@ -216,48 +237,102 @@ function TxRow({ tx }: { tx: Transaction }) {
           </div>
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-ink-40 dark:text-snow-60">
-          How was it?
-        </p>
+
+      {/* Score row */}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <button
+          onClick={onToggle}
+          className="press flex items-center gap-2 rounded-full border border-ink-10 bg-white px-2.5 py-1 text-ink-80 dark:border-white/10 dark:bg-white/5 dark:text-snow-80"
+          aria-expanded={open}
+          aria-label={`Fit score ${score.value} of 5: ${score.label}`}
+        >
+          <FitPips value={score.value} />
+          <span className="text-[11px] font-semibold tracking-wide">
+            {score.label}
+          </span>
+          <Info size={12} className="opacity-50" />
+        </button>
         <RatingControl txId={tx.id} />
+      </div>
+
+      {open && (
+        <motion.p
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.22 }}
+          className="mt-3 overflow-hidden text-caption text-ink-60 dark:text-snow-60"
+        >
+          <span className="text-ink-40 dark:text-snow-60">Why this score:</span>{" "}
+          {score.reason}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
+function DistributionBar({
+  dist,
+  total,
+}: {
+  dist: Record<FitScore, number>;
+  total: number;
+}) {
+  if (total === 0) return null;
+  const segments: { value: FitScore; count: number }[] = [
+    { value: 5, count: dist[5] },
+    { value: 4, count: dist[4] },
+    { value: 3, count: dist[3] },
+    { value: 2, count: dist[2] },
+    { value: 1, count: dist[1] },
+  ];
+  // Fill intensity: 5 = baltic solid, 1 = baltic 25%.
+  const opacity = (v: FitScore) =>
+    ({ 5: 1, 4: 0.82, 3: 0.58, 2: 0.36, 1: 0.18 })[v];
+  return (
+    <div className="mt-4">
+      <div className="flex h-2 overflow-hidden rounded-full bg-white/60 dark:bg-white/10">
+        {segments.map(({ value, count }) => {
+          const pct = (count / total) * 100;
+          if (pct === 0) return null;
+          return (
+            <div
+              key={value}
+              style={{
+                width: `${pct}%`,
+                backgroundColor: `rgba(44, 104, 154, ${opacity(value)})`,
+              }}
+              title={`${FIT_LABELS[value]}: ${count}`}
+              className="dark:!bg-icy"
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function RatingBar({
-  stats,
-}: {
-  stats: { worthIt: number; meh: number; regret: number; rated: number };
-}) {
-  if (stats.rated === 0) return null;
-  const w = (stats.worthIt / stats.rated) * 100;
-  const m = (stats.meh / stats.rated) * 100;
-  const r = (stats.regret / stats.rated) * 100;
+function ScoreLegend() {
   return (
-    <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-white/60 dark:bg-white/10">
-      {w > 0 && (
-        <div
-          style={{ width: `${w}%` }}
-          className="bg-baltic dark:bg-icy"
-          title={`${stats.worthIt} worth it`}
-        />
-      )}
-      {m > 0 && (
-        <div
-          style={{ width: `${m}%` }}
-          className="bg-baltic/40 dark:bg-icy/40"
-          title={`${stats.meh} meh`}
-        />
-      )}
-      {r > 0 && (
-        <div
-          style={{ width: `${r}%` }}
-          className="bg-ink dark:bg-snow"
-          title={`${stats.regret} regret`}
-        />
-      )}
+    <div className="mt-4 rounded-2xl border border-ink-5 bg-white px-4 py-3 dark:border-white/5 dark:bg-[color:var(--surface)]">
+      <p className="text-micro text-ink-40 dark:text-snow-60">
+        HOW WE SCORE EACH PURCHASE
+      </p>
+      <div className="mt-2 grid grid-cols-1 gap-1.5 text-caption text-ink-80 dark:text-snow-80">
+        <LegendRow value={5} desc="Essential — staples, rent, utilities." />
+        <LegendRow value={4} desc="Worth it — experiences or anything you flagged." />
+        <LegendRow value={3} desc="Fair — no strong signal either way." />
+        <LegendRow value={2} desc="Swap-worthy — we know a cheaper option." />
+        <LegendRow value={1} desc="Habit — high repeat with an easy swap." />
+      </div>
+    </div>
+  );
+}
+
+function LegendRow({ value, desc }: { value: FitScore; desc: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <FitPips value={value} />
+      <span>{desc}</span>
     </div>
   );
 }
@@ -275,7 +350,11 @@ interface DayGroup {
 
 function groupByDay(txns: Transaction[]): DayGroup[] {
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  ).getTime();
   const yesterdayStart = todayStart - 86_400_000;
   const weekStart = todayStart - 6 * 86_400_000;
 
@@ -310,7 +389,6 @@ function groupByDay(txns: Transaction[]): DayGroup[] {
   for (const [k, v] of buckets) {
     if (!order.includes(k)) ordered.push(v);
   }
-  // Newest item first in each bucket
   for (const g of ordered) {
     g.items.sort((a, b) =>
       new Date(a.timestamp).getTime() < new Date(b.timestamp).getTime() ? 1 : -1

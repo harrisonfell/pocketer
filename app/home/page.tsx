@@ -15,6 +15,9 @@ import { CategoryIcon } from "@/components/category-icon";
 import { WhatThatBuys } from "@/components/what-that-buys";
 import { ScanLoading } from "@/components/scan-loading";
 import { aggregate } from "@/lib/ratings";
+import { summarize } from "@/lib/scoring";
+import { generateTransactions } from "@/lib/engine";
+import { FitRing } from "@/components/fit-score";
 
 const SCAN_FLAG = "pocketer.scanned.v2";
 
@@ -38,6 +41,15 @@ export default function HomePage() {
     if (!scan.topLeak) return null;
     return aggregate(scan.topLeak.transactions, ratings);
   }, [scan.topLeak, ratings]);
+
+  const fitSummary = useMemo(() => {
+    if (!archetype) return null;
+    const cutoff = Date.now() - 30 * 86_400_000;
+    const txns = generateTransactions(archetype).filter(
+      (t) => new Date(t.timestamp).getTime() >= cutoff
+    );
+    return summarize(txns, ratings);
+  }, [archetype, ratings]);
 
   function finishScan() {
     if (typeof window !== "undefined") {
@@ -147,12 +159,48 @@ export default function HomePage() {
           </Link>
         </motion.div>
 
+        {fitSummary && fitSummary.count > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.65 }}
+            className="mt-8"
+          >
+            <Link href="/purchases" className="block press">
+              <Card>
+                <div className="flex items-center gap-4">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center text-baltic dark:text-icy">
+                    <FitRing average={fitSummary.average} size={64} strokeWidth={6} />
+                    <span className="absolute nums text-[19px] font-extrabold text-ink dark:text-snow">
+                      {fitSummary.average.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-micro text-ink-40 dark:text-snow-60">
+                      POCKETER FIT — 30 DAYS
+                    </p>
+                    <p className="mt-1 text-headline text-ink dark:text-snow">
+                      {fitSummary.label}
+                    </p>
+                    <p className="text-caption text-ink-60 dark:text-snow-60">
+                      {fitSummary.distribution[1]} habit ·{" "}
+                      {fitSummary.distribution[2]} swap-worthy ·{" "}
+                      {fitSummary.distribution[5]} essential
+                    </p>
+                  </div>
+                  <ChevronRight size={20} className="text-ink-40 dark:text-snow-60" />
+                </div>
+              </Card>
+            </Link>
+          </motion.div>
+        )}
+
         {secondary.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.7 }}
-            className="mt-10"
+            transition={{ duration: 0.55, delay: 0.78 }}
+            className="mt-8"
           >
             <h2 className="text-micro text-ink-40 dark:text-snow-60">
               ALSO ADDING UP
@@ -197,7 +245,7 @@ export default function HomePage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.85 }}
+          transition={{ duration: 0.55, delay: 0.95 }}
           className="mt-10"
         >
           <Card tone="ink">
