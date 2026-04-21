@@ -24,18 +24,19 @@ export default function SwitchesPage() {
 
   const projected = switches.reduce((s, x) => s + x.projectedMonthlySavings, 0);
 
-  // For empty state, show the top-3 achievable savings across all leaks.
+  // 0-switches preview: top-3 achievable savings with deep links.
   const previewSavings = useMemo(() => {
     if (switches.length > 0 || !scan.ready) return null;
-    const top = scan.leaks
+    return scan.leaks
       .map((l) => {
         const alts = suggestAlternatives(l);
         const best = alts.find((a) => a.estSavingsVsLeak(l) > 0);
-        return best ? { leak: l, alt: best, savings: Math.round(best.estSavingsVsLeak(l)) } : null;
+        return best
+          ? { leak: l, alt: best, savings: Math.round(best.estSavingsVsLeak(l)) }
+          : null;
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .slice(0, 3);
-    return top;
   }, [scan, switches.length]);
 
   const previewTotal = previewSavings?.reduce((s, x) => s + x.savings, 0) ?? 0;
@@ -43,7 +44,7 @@ export default function SwitchesPage() {
   return (
     <Shell>
       <div className="px-5 pb-10 pt-12 safe-top">
-        <p className="text-xs font-semibold tracking-widest text-ink-400">YOUR SWITCHES</p>
+        <p className="text-micro text-ink-40 dark:text-snow-60">YOUR SWITCHES</p>
 
         {switches.length > 0 ? (
           <motion.section
@@ -52,29 +53,27 @@ export default function SwitchesPage() {
             transition={{ duration: 0.5 }}
             className="mt-4"
           >
-            <Card tone="mint">
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-mint">
-                STAYING IN YOUR POCKET
-              </p>
-              <p className="mt-2 text-5xl font-semibold nums leading-none">
+            <Card tone="ink">
+              <p className="text-micro text-icy">STAYING WITH YOU</p>
+              <p className="mt-2 text-display nums text-snow leading-none">
                 <CountUp to={projected} />
-                <span className="ml-1 text-xl font-medium text-ink-300">/mo</span>
+                <span className="ml-1 text-body text-snow-60">/mo</span>
               </p>
-              <p className="mt-2 text-sm text-ink-300">
+              <p className="mt-2 text-callout text-snow-60">
                 That&apos;s{" "}
-                <span className="nums font-semibold text-ink-100">
+                <span className="nums font-bold text-snow">
                   ${(projected * 12).toLocaleString()}
                 </span>{" "}
-                a year — as long as you keep it going.
+                a year, if the swaps stick.
               </p>
               <Button
                 disabled
                 size="md"
                 variant="secondary"
-                className="mt-4"
+                className="mt-4 bg-white/10 text-snow hover:bg-white/15"
                 title="Coming soon"
               >
-                Auto-redirect to savings → soon
+                We do the math, you make the call →
               </Button>
             </Card>
           </motion.section>
@@ -86,15 +85,15 @@ export default function SwitchesPage() {
             className="mt-4"
           >
             <Card>
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-ink-400">
-                IF YOU ACCEPTED THE TOP 3
+              <p className="text-micro text-ink-40 dark:text-snow-60">
+                IF YOU TOOK THE TOP 3
               </p>
-              <p className="mt-2 text-5xl font-semibold nums leading-none">
+              <p className="mt-2 text-display nums text-ink dark:text-snow leading-none">
                 <CountUp to={previewTotal} />
-                <span className="ml-1 text-xl font-medium text-ink-300">/mo</span>
+                <span className="ml-1 text-body text-ink-40 dark:text-snow-60">/mo</span>
               </p>
-              <p className="mt-2 text-sm text-ink-300">
-                That&apos;s what&apos;s sitting there, waiting.
+              <p className="mt-2 text-callout text-ink-60 dark:text-snow-60">
+                Sitting there, waiting.
               </p>
 
               {previewSavings && previewSavings.length > 0 && (
@@ -103,25 +102,29 @@ export default function SwitchesPage() {
                     <Link
                       key={leak.id}
                       href={`/leak/${encodeURIComponent(leak.id)}`}
-                      className="press flex items-center justify-between rounded-xl bg-ink-950/60 px-4 py-3"
+                      className="press flex items-center justify-between rounded-2xl bg-icy-softer px-4 py-3 dark:bg-baltic/15"
                     >
                       <div className="min-w-0 pr-3">
-                        <p className="truncate text-sm font-semibold">{alt.name}</p>
-                        <p className="truncate text-[11px] text-ink-400">
+                        <p className="truncate text-callout font-semibold text-ink dark:text-snow">
+                          {alt.name}
+                        </p>
+                        <p className="truncate text-caption text-ink-60 dark:text-snow-60">
                           Replaces {leak.merchant}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="nums text-sm font-semibold text-mint">+${savings}</span>
-                        <ArrowRight size={14} className="text-ink-500" />
+                        <span className="nums text-callout font-bold text-baltic dark:text-icy">
+                          +${savings}
+                        </span>
+                        <ArrowRight size={14} className="text-ink-40 dark:text-snow-60" />
                       </div>
                     </Link>
                   ))}
                 </div>
               )}
 
-              <Link href="/home" className="mt-4 inline-block w-full">
-                <Button block>See the leak</Button>
+              <Link href="/home" className="mt-4 block">
+                <Button block>See the first one</Button>
               </Link>
             </Card>
           </motion.section>
@@ -129,7 +132,7 @@ export default function SwitchesPage() {
 
         {switches.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-xl font-semibold tracking-tight">
+            <h2 className="text-title2 text-ink dark:text-snow">
               {switches.length} active
             </h2>
 
@@ -144,8 +147,10 @@ export default function SwitchesPage() {
                   <Card>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1 pr-3">
-                        <p className="truncate font-semibold">{s.alternativeName}</p>
-                        <p className="text-xs text-ink-400">
+                        <p className="truncate text-headline text-ink dark:text-snow">
+                          {s.alternativeName}
+                        </p>
+                        <p className="text-caption text-ink-60 dark:text-snow-60">
                           Started{" "}
                           {new Date(s.acceptedAt).toLocaleDateString(undefined, {
                             month: "short",
@@ -155,15 +160,18 @@ export default function SwitchesPage() {
                         <WeekPips startedISO={s.acceptedAt} />
                       </div>
                       <div className="text-right">
-                        <p className="nums text-lg font-semibold text-mint">
+                        <p className="nums text-title2 font-bold text-baltic dark:text-icy">
                           +${s.projectedMonthlySavings}
                         </p>
-                        <p className="text-[10px] text-ink-400">/mo</p>
+                        <p className="text-[10px] text-ink-40 dark:text-snow-60">
+                          /mo
+                        </p>
                       </div>
                       <button
                         onClick={() => removeSwitch(s.id)}
-                        className="press ml-3 flex h-9 w-9 items-center justify-center rounded-full text-ink-500 hover:text-rose-warn"
-                        aria-label="Drop switch"
+                        className="press ml-3 flex h-9 w-9 items-center justify-center rounded-full text-ink-40 hover:text-ink dark:text-snow-60 dark:hover:text-snow"
+                        aria-label="This one didn't stick"
+                        title="This one didn't stick"
                       >
                         <Trash2 size={16} />
                       </button>

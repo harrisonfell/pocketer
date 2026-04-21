@@ -2,17 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Brand tokens exposed as CSS vars for cross-context use */
 :root {
+  color-scheme: light;
+  --baltic: #2C689A;
+  --baltic-hover: #255A86;
+  --icy: #B0DBF8;
+  --icy-soft: #D9EDFB;
+  --icy-softer: #ECF5FD;
+  --ink: #102231;
+  --paper: #F5F6F8;
+
+  /* Semantic (light mode defaults) */
+  --bg: #FFFFFF;
+  --bg-elev: #F5F6F8;
+  --surface: #FFFFFF;
+  --surface-muted: #F5F6F8;
+  --text: #102231;
+  --text-muted: rgba(16, 34, 49, 0.60);
+  --text-subtle: rgba(16, 34, 49, 0.40);
+  --border: rgba(16, 34, 49, 0.08);
+  --accent: #2C689A;
+  --on-accent: #FFFFFF;
+}
+
+.dark {
   color-scheme: dark;
+  --bg: #0A1420;
+  --bg-elev: #102231;
+  --surface: #152A3D;
+  --surface-muted: #0F2030;
+  --text: #ECF5FD;
+  --text-muted: rgba(236, 245, 253, 0.70);
+  --text-subtle: rgba(236, 245, 253, 0.45);
+  --border: rgba(236, 245, 253, 0.08);
+  --accent: #B0DBF8;
+  --on-accent: #102231;
 }
 
 html,
 body {
-  background: #0A0A0B;
-  color: #F4F4F5;
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-feature-settings: "cv11", "ss01";
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
@@ -26,9 +61,10 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* Button press feel */
+/* Press feel */
 .press {
-  transition: transform 150ms ease-out, opacity 150ms ease-out;
+  transition: transform 150ms ease-out, opacity 150ms ease-out, background-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .press:active {
   transform: scale(0.98);
@@ -42,7 +78,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Safe area */
+/* Safe areas */
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom, 0) + 0.5rem);
 }
@@ -50,14 +86,30 @@ body {
   padding-top: env(safe-area-inset-top, 0);
 }
 
-/* Subtle grain */
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.8'/></svg>");
-  z-index: 0;
+/* Momentum line for streak tracking — subtle animated gradient */
+.momentum {
+  background-image: linear-gradient(
+    90deg,
+    rgba(176, 219, 248, 0) 0%,
+    rgba(176, 219, 248, 0.5) 50%,
+    rgba(176, 219, 248, 0) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Dotted separator for list rows */
+.dotted {
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
+  background-position: 0 center;
+}
+
+/* Accessibility: reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

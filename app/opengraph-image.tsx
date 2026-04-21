@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Pocketer — swap one habit, pocket the difference";
+export const alt = "Pocketer — we aren't just saving money, we're saving for living";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -11,42 +11,41 @@ export default function OG() {
         style={{
           width: "100%",
           height: "100%",
-          background: "#0A0A0B",
+          background: "#FFFFFF",
           display: "flex",
           flexDirection: "column",
           padding: "80px",
-          color: "#F4F4F5",
+          color: "#102231",
           fontFamily: "sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div
             style={{
               width: 56,
               height: 56,
-              background: "#7EF0C1",
-              borderRadius: 12,
+              background: "#B0DBF8",
+              borderRadius: 14,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#0A0A0B",
-              fontWeight: 800,
-              fontSize: 32,
             }}
           >
-            P
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <path
+                d="M12 15 L20 23 L28 15"
+                stroke="#2C689A"
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <div
             style={{
               fontSize: 22,
               letterSpacing: 6,
-              color: "#A1A1AA",
+              color: "#102231",
               fontWeight: 700,
             }}
           >
@@ -56,30 +55,30 @@ export default function OG() {
 
         <div
           style={{
-            marginTop: 120,
-            fontSize: 96,
-            fontWeight: 700,
+            marginTop: 110,
+            fontSize: 92,
+            fontWeight: 800,
             lineHeight: 1.02,
             letterSpacing: -2,
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <span>Swap one habit.</span>
-          <span style={{ color: "#7EF0C1" }}>Pocket the difference.</span>
+          <span>We aren&apos;t just saving money.</span>
+          <span style={{ color: "#2C689A" }}>We&apos;re saving for living.</span>
         </div>
 
         <div
           style={{
             marginTop: "auto",
-            fontSize: 28,
-            color: "#A1A1AA",
+            fontSize: 26,
+            color: "rgba(16, 34, 49, 0.65)",
             maxWidth: 900,
-            lineHeight: 1.25,
+            lineHeight: 1.3,
           }}
         >
-          Finds the money quietly leaking out of your account — and redirects it into
-          savings.
+          No budgets. No guilt. Just the swaps that pay for themselves — and your
+          call on every one.
         </div>
       </div>
     ),

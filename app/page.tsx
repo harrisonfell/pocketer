@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { LogoLockup } from "@/components/logo";
 import { useSession } from "@/components/session-provider";
 import type { Archetype } from "@/lib/engine/types";
 import { useEffect, useState } from "react";
@@ -20,11 +21,10 @@ export default function Landing() {
 
   function connect() {
     setConnecting(true);
-    // Pick an archetype — weighted toward heavy so demos hit hard.
-    const pick =
-      Math.random() < 0.75
-        ? "heavy_delivery"
-        : ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
+    // Weighted toward heavy so demos land well. 70/20/10.
+    const r = Math.random();
+    const pick: Archetype =
+      r < 0.7 ? "heavy_delivery" : r < 0.9 ? "mixed_delivery" : "light_delivery";
     setTimeout(() => {
       setArchetype(pick);
       router.push("/home");
@@ -32,47 +32,53 @@ export default function Landing() {
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col px-6 pt-20 pb-10 safe-top">
+    <div className="relative flex min-h-dvh flex-col px-6 pt-14 pb-10 safe-top">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex-1"
       >
-        <div className="mb-8 flex items-center gap-2">
-          <LogoMark />
-          <span className="text-sm font-semibold tracking-widest text-ink-300">POCKETER</span>
-        </div>
+        <LogoLockup />
+      </motion.div>
 
-        <h1 className="text-[44px] font-semibold leading-[1.02] tracking-tight">
-          Swap one habit.
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className="mt-16 flex-1"
+      >
+        <h1 className="text-display text-ink dark:text-snow">
+          We aren&apos;t just
           <br />
-          <span className="text-mint">Pocket the difference.</span>
+          saving money.
+          <br />
+          <span className="text-baltic dark:text-icy">We&apos;re saving for living.</span>
         </h1>
 
-        <p className="mt-5 text-lg leading-snug text-ink-300">
-          Pocketer scans where your money quietly leaks — DoorDash, that forgotten subscription,
-          the latte habit — and shows you one cheaper swap. Savings go straight into your pocket.
+        <p className="mt-5 text-body text-ink-60 dark:text-snow-60">
+          Pocketer sees where your money goes, surfaces one cheaper swap, and
+          helps you choose whether to take it. No budgets. No guilt. Just the math,
+          and your call.
         </p>
 
-        <ul className="mt-10 space-y-4 text-ink-300">
-          <Bullet>Not a budget. You won&apos;t track a single thing.</Bullet>
-          <Bullet>Not a lecture. We don&apos;t tell you to &quot;stop spending.&quot;</Bullet>
-          <Bullet>Just the switch that pays for itself.</Bullet>
+        <ul className="mt-10 space-y-3.5 text-body text-ink-60 dark:text-snow-60">
+          <Bullet>You rate what&apos;s worth it. We learn your taste.</Bullet>
+          <Bullet>One swap at a time, one habit at a time.</Bullet>
+          <Bullet>Private by default. Your spending stays yours.</Bullet>
         </ul>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
         className="flex flex-col gap-3"
       >
         <Button block size="lg" onClick={connect} disabled={connecting}>
-          {connecting ? "Scanning 90 days…" : "Connect (demo)"}
+          {connecting ? "Reading 90 days…" : "Start your fund today"}
         </Button>
-        <p className="text-center text-xs text-ink-500">
-          No real bank connection. This is a prototype — synthetic data only.
+        <p className="text-center text-caption text-ink-40 dark:text-snow-60">
+          Demo · synthetic data, no real bank connection.
         </p>
       </motion.div>
     </div>
@@ -82,19 +88,8 @@ export default function Landing() {
 function Bullet({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-mint" />
+      <span className="mt-[9px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-baltic dark:bg-icy" />
       <span className="leading-snug">{children}</span>
     </li>
-  );
-}
-
-function LogoMark() {
-  return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-mint text-ink-950">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 7h18v4a5 5 0 0 1-5 5h-2l-2 3-2-3H8a5 5 0 0 1-5-5V7z" />
-        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      </svg>
-    </div>
   );
 }

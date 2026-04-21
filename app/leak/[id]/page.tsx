@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { CategoryIcon } from "@/components/category-icon";
 import { useLeak, suggestAlternatives } from "@/lib/use-scan";
 import { useSession } from "@/components/session-provider";
 import type { Alternative } from "@/lib/engine/types";
+import { aggregate } from "@/lib/ratings";
 import { cn } from "@/lib/utils";
 
 export default function LeakDetail() {
@@ -19,7 +20,7 @@ export default function LeakDetail() {
   const id = decodeURIComponent(params.id);
   const router = useRouter();
   const { leak, ready } = useLeak(id);
-  const { addSwitch, switches } = useSession();
+  const { addSwitch, switches, ratings } = useSession();
   const [confirmed, setConfirmed] = useState<Alternative | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
 
@@ -27,34 +28,47 @@ export default function LeakDetail() {
   const visible = alts.filter((a) => !skipped.has(a.id));
   const current = visible[0] ?? null;
   const currentSavings = leak && current ? Math.round(current.estSavingsVsLeak(leak)) : 0;
+  const ratingStats = useMemo(
+    () => (leak ? aggregate(leak.transactions, ratings) : null),
+    [leak, ratings]
+  );
 
-  if (!ready) return <Shell><div className="px-5 pt-16">Loading…</div></Shell>;
+  if (!ready) {
+    return (
+      <Shell>
+        <div className="px-5 pt-16 text-body text-ink-60 dark:text-snow-60">
+          Loading…
+        </div>
+      </Shell>
+    );
+  }
   if (!leak) {
     return (
       <Shell>
         <div className="px-5 pt-16">
-          <p>Leak not found.</p>
-          <Link href="/home" className="text-mint">Back home</Link>
+          <p className="text-body text-ink dark:text-snow">Not found.</p>
+          <Link href="/home" className="text-baltic dark:text-icy">
+            Back home
+          </Link>
         </div>
       </Shell>
     );
   }
 
-  const alreadySwitched = switches.find((s) => s.leakId === leak.id && s.status === "active");
+  const alreadySwitched = switches.find(
+    (s) => s.leakId === leak.id && s.status === "active"
+  );
 
   function accept() {
     if (!current || !leak) return;
-    const s = addSwitch({
+    addSwitch({
       leakId: leak.id,
       alternativeId: current.id,
       alternativeName: current.name,
       projectedMonthlySavings: currentSavings,
     });
     setConfirmed(current);
-    setTimeout(() => {
-      router.push("/switches");
-    }, 1200);
-    return s;
+    setTimeout(() => router.push("/switches"), 1200);
   }
 
   function skip() {
@@ -67,40 +81,73 @@ export default function LeakDetail() {
       <div className="px-5 pt-10 pb-10 safe-top">
         <button
           onClick={() => router.back()}
-          className="press inline-flex items-center gap-1 text-sm text-ink-400"
+          className="press inline-flex items-center gap-1 text-callout text-ink-60 dark:text-snow-60"
         >
           <ArrowLeft size={16} /> Back
         </button>
 
         <section className="mt-6">
           <div className="flex items-center gap-3">
-            <CategoryIcon category={leak.category} size={48} />
+            <CategoryIcon category={leak.category} size={52} />
             <div>
-              <p className="text-xs font-semibold tracking-widest text-amber-leak">THE LEAK</p>
-              <h1 className="text-2xl font-semibold tracking-tight">{leak.merchant}</h1>
+              <p className="text-micro text-baltic dark:text-icy">
+                THE HABIT
+              </p>
+              <h1 className="text-title1 text-ink dark:text-snow">{leak.merchant}</h1>
             </div>
           </div>
 
-          <Card tone="warm" className="mt-5">
+          <Card tone="icy" className="mt-5">
             <div className="flex items-baseline justify-between">
               <div>
-                <p className="text-xs text-ink-300">Last 30 days</p>
-                <p className="mt-1 text-4xl font-semibold nums">
+                <p className="text-caption text-ink-60 dark:text-snow-60">
+                  Last 30 days
+                </p>
+                <p className="mt-1 text-title1 nums text-ink dark:text-snow">
                   ${Math.round(leak.monthlyProjection)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-ink-300">Orders</p>
-                <p className="mt-1 text-4xl font-semibold nums">{leak.occurrences}</p>
+                <p className="text-caption text-ink-60 dark:text-snow-60">
+                  Orders
+                </p>
+                <p className="mt-1 text-title1 nums text-ink dark:text-snow">
+                  {leak.occurrences}
+                </p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-ink-200">{leak.subhead}</p>
+            <p className="mt-4 text-callout text-ink-60 dark:text-snow-60">
+              {leak.subhead}
+            </p>
+
+            {ratingStats && ratingStats.rated > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-white/50 p-3 dark:bg-white/5">
+                <Ministat
+                  label="Worth it"
+                  value={ratingStats.worthIt}
+                  of={ratingStats.rated}
+                />
+                <Ministat
+                  label="Meh"
+                  value={ratingStats.meh}
+                  of={ratingStats.rated}
+                />
+                <Ministat
+                  label="Regret"
+                  value={ratingStats.regret}
+                  of={ratingStats.rated}
+                  emphasize={ratingStats.regret > 0}
+                />
+              </div>
+            )}
           </Card>
         </section>
 
         <section className="mt-8">
-          <p className="text-xs font-semibold tracking-widest text-mint">THE SWITCH</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight">
+          <p className="text-micro text-baltic dark:text-icy">
+            THE SWAP WE&apos;D TRY
+          </p>
+          <h2 className="mt-2 text-title2 text-ink dark:text-snow">
             One change covers most of it.
           </h2>
 
@@ -115,7 +162,11 @@ export default function LeakDetail() {
                 className="mt-4"
                 style={{ perspective: 900 }}
               >
-                <AltCard alt={current} savings={currentSavings} leakAmount={leak.monthlyProjection} />
+                <AltCard
+                  alt={current}
+                  savings={currentSavings}
+                  leakAmount={leak.monthlyProjection}
+                />
               </motion.div>
             )}
             {confirmed && (
@@ -126,24 +177,29 @@ export default function LeakDetail() {
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                 className="mt-4"
               >
-                <Card tone="mint" className="text-center">
+                <Card tone="ink" className="text-center">
                   <div className="mb-2 flex justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-mint text-ink-950">
-                      <ThumbsUp size={22} />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-icy text-ink">
+                      <Check size={22} strokeWidth={2.6} />
                     </div>
                   </div>
-                  <p className="text-xs font-semibold tracking-widest text-mint">LOCKED IN</p>
-                  <p className="mt-2 text-lg font-semibold">{confirmed.name}</p>
-                  <p className="mt-1 text-sm text-ink-300">
-                    We&apos;ll check back in 7 days to see how it landed.
+                  <p className="text-micro text-icy">LOCKED IN</p>
+                  <p className="mt-2 text-headline text-snow">{confirmed.name}</p>
+                  <p className="mt-1 text-callout text-snow-60">
+                    We&apos;ll check back in 7 days.
                   </p>
                 </Card>
               </motion.div>
             )}
             {!current && !confirmed && (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
-                <Card className="text-center text-ink-300">
-                  <p>No more ideas for this leak. Come back after payday.</p>
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4"
+              >
+                <Card className="text-center text-ink-60 dark:text-snow-60">
+                  <p>No more ideas for this one. Come back after payday.</p>
                 </Card>
               </motion.div>
             )}
@@ -153,10 +209,10 @@ export default function LeakDetail() {
             <div className="mt-5 flex items-center gap-3">
               <button
                 onClick={skip}
-                className="press flex h-14 w-14 items-center justify-center rounded-full border border-ink-700 text-ink-300"
+                className="press flex h-14 w-14 items-center justify-center rounded-full border border-ink-10 text-ink-60 hover:border-ink-20 dark:border-white/10 dark:text-snow-60"
                 aria-label="Not feeling it"
               >
-                <ThumbsDown size={22} />
+                <X size={22} />
               </button>
               <Button size="lg" block onClick={accept}>
                 {current.ctaLabel}
@@ -165,13 +221,18 @@ export default function LeakDetail() {
           )}
 
           {alreadySwitched && !confirmed && (
-            <Card tone="mint" className="mt-5">
-              <p className="text-xs font-semibold tracking-widest text-mint">ALREADY SWITCHED</p>
-              <p className="mt-2 text-sm text-ink-200">
-                You&apos;re on {alreadySwitched.alternativeName}. Saving ~$
-                {alreadySwitched.projectedMonthlySavings}/mo.
+            <Card tone="icy" className="mt-5">
+              <p className="text-micro text-baltic dark:text-icy">
+                YOU&apos;RE ON THIS ONE
               </p>
-              <Link href="/switches" className="mt-3 inline-block text-sm font-semibold text-mint">
+              <p className="mt-2 text-body text-ink dark:text-snow">
+                {alreadySwitched.alternativeName}. About ${" "}
+                {alreadySwitched.projectedMonthlySavings}/mo staying with you.
+              </p>
+              <Link
+                href="/switches"
+                className="mt-3 inline-block text-callout font-semibold text-baltic dark:text-icy"
+              >
                 See all switches →
               </Link>
             </Card>
@@ -180,7 +241,7 @@ export default function LeakDetail() {
 
         {visible.length > 1 && !confirmed && (
           <section className="mt-10">
-            <p className="text-xs font-semibold tracking-widest text-ink-400">
+            <p className="text-micro text-ink-40 dark:text-snow-60">
               OTHER ANGLES
             </p>
             <div className="mt-3 space-y-2">
@@ -189,16 +250,22 @@ export default function LeakDetail() {
                 return (
                   <div
                     key={alt.id}
-                    className="flex items-center justify-between rounded-xl border border-ink-800 bg-ink-900 px-4 py-3"
+                    className="flex items-center justify-between rounded-2xl border border-ink-5 bg-white px-4 py-3 dark:border-white/5 dark:bg-[color:var(--surface)]"
                   >
-                    <div>
-                      <p className="text-sm font-semibold">{alt.name}</p>
-                      <p className="text-xs text-ink-400">{alt.blurb}</p>
+                    <div className="min-w-0 pr-3">
+                      <p className="text-callout font-semibold text-ink dark:text-snow">
+                        {alt.name}
+                      </p>
+                      <p className="truncate text-caption text-ink-60 dark:text-snow-60">
+                        {alt.blurb}
+                      </p>
                     </div>
                     <p
                       className={cn(
-                        "nums text-sm font-semibold whitespace-nowrap",
-                        s > 0 ? "text-mint" : "text-ink-500"
+                        "nums text-callout font-semibold whitespace-nowrap",
+                        s > 0
+                          ? "text-baltic dark:text-icy"
+                          : "text-ink-40 dark:text-snow-60"
                       )}
                     >
                       {s > 0 ? `−$${s}/mo` : "—"}
@@ -211,15 +278,40 @@ export default function LeakDetail() {
         )}
 
         {!confirmed && (
-          <section className="mt-10 text-center">
-            <p className="text-xs text-ink-500">
-              {leak.occurrences} charges averaged ${leak.avgTicket.toFixed(2)} · source: last 30
-              days
-            </p>
-          </section>
+          <p className="mt-10 text-center text-caption text-ink-40 dark:text-snow-60">
+            {leak.occurrences} charges averaged ${leak.avgTicket.toFixed(2)} · last 30 days
+          </p>
         )}
       </div>
     </Shell>
+  );
+}
+
+function Ministat({
+  label,
+  value,
+  of,
+  emphasize,
+}: {
+  label: string;
+  value: number;
+  of: number;
+  emphasize?: boolean;
+}) {
+  return (
+    <div className="text-center">
+      <p
+        className={cn(
+          "text-title2 font-bold nums",
+          emphasize ? "text-ink dark:text-snow" : "text-ink-80 dark:text-snow-80"
+        )}
+      >
+        {value}
+      </p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-ink-40 dark:text-snow-60">
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -234,28 +326,31 @@ function AltCard({
 }) {
   const savingsPct = Math.round((savings / Math.max(1, leakAmount)) * 100);
   return (
-    <div className="rounded-2xl border border-mint/30 bg-gradient-to-b from-mint/10 to-ink-900 p-5">
-      <p className="text-xs font-medium tracking-widest text-mint">SWITCH TO</p>
-      <h3 className="mt-2 text-2xl font-semibold tracking-tight">{alt.name}</h3>
-      <p className="mt-2 text-sm leading-snug text-ink-200">{alt.blurb}</p>
+    <div className="rounded-3xl border border-baltic/25 bg-white p-5 shadow-card dark:border-icy/25 dark:bg-[color:var(--surface)]">
+      <p className="text-micro text-baltic dark:text-icy">SWAP TO</p>
+      <h3 className="mt-2 text-title1 text-ink dark:text-snow">{alt.name}</h3>
+      <p className="mt-2 text-callout text-ink-60 dark:text-snow-60">{alt.blurb}</p>
 
       <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-        <Stat label="Saves" value={`$${savings}`} accent />
-        <Stat label="Per month" value={`$${alt.monthlyCost}`} />
+        <Stat label="Back in pocket" value={`$${savings}`} accent />
+        <Stat label="Costs you" value={`$${alt.monthlyCost}`} />
         <Stat label="Prep" value={`${alt.prepMinutes}m`} />
       </div>
 
-      <div className="mt-5 flex items-center justify-between rounded-xl bg-ink-950/60 px-4 py-3">
-        <span className="text-xs text-ink-300">Annual impact</span>
-        <span className="nums text-sm font-semibold text-mint">
-          ${(savings * 12).toLocaleString()}/yr
+      <div className="mt-5 flex items-center justify-between rounded-2xl bg-icy-softer px-4 py-3 dark:bg-baltic/15">
+        <span className="text-caption text-ink-60 dark:text-snow-60">
+          In a year
+        </span>
+        <span className="nums text-callout font-bold text-baltic dark:text-icy">
+          ${(savings * 12).toLocaleString()}
         </span>
       </div>
 
-      {savings > 0 && (
-        <p className="mt-3 text-[11px] text-ink-400">
-          Cuts your {leakAmount > 0 ? `$${Math.round(leakAmount)}` : "this"} leak by{" "}
-          <span className="text-mint">{savingsPct}%</span>
+      {savings > 0 && leakAmount > 0 && (
+        <p className="mt-3 text-caption text-ink-40 dark:text-snow-60">
+          Covers{" "}
+          <span className="text-baltic dark:text-icy font-semibold">{savingsPct}%</span>{" "}
+          of the ${Math.round(leakAmount)} you&apos;re already spending.
         </p>
       )}
     </div>
@@ -273,8 +368,17 @@ function Stat({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-widest text-ink-400">{label}</p>
-      <p className={cn("mt-1 nums text-lg font-semibold", accent && "text-mint")}>{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.14em] text-ink-40 dark:text-snow-60">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 nums text-headline font-bold",
+          accent ? "text-baltic dark:text-icy" : "text-ink dark:text-snow"
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

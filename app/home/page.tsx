@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
@@ -14,24 +14,30 @@ import { hoursOfPaycheck } from "@/lib/utils";
 import { CategoryIcon } from "@/components/category-icon";
 import { WhatThatBuys } from "@/components/what-that-buys";
 import { ScanLoading } from "@/components/scan-loading";
+import { aggregate } from "@/lib/ratings";
 
-const SCAN_FLAG = "pocketer.scanned.v1";
+const SCAN_FLAG = "pocketer.scanned.v2";
 
 export default function HomePage() {
-  const { hydrated, archetype, profile } = useSession();
+  const { hydrated, archetype, profile, ratings } = useSession();
   const router = useRouter();
   const scan = useScan();
   const [scanComplete, setScanComplete] = useState(false);
 
   useEffect(() => {
     if (hydrated && !archetype) router.replace("/");
-    // Only show the full scan animation the first time after connect.
     if (hydrated && typeof window !== "undefined") {
       if (window.sessionStorage.getItem(SCAN_FLAG) === "done") {
         setScanComplete(true);
       }
     }
   }, [hydrated, archetype, router]);
+
+  // Aggregate regret stats across the top leak's transactions.
+  const topLeakRatings = useMemo(() => {
+    if (!scan.topLeak) return null;
+    return aggregate(scan.topLeak.transactions, ratings);
+  }, [scan.topLeak, ratings]);
 
   function finishScan() {
     if (typeof window !== "undefined") {
@@ -47,12 +53,16 @@ export default function HomePage() {
   const secondary = scan.leaks.slice(1, 4).filter((l) => l.savingsPotential > 0);
   const wage = profile?.hourlyWage ?? 24;
 
-  // Nothing detected, or the best leak has no viable swap — show "good shape"
-  // with any observed spending noted honestly.
   if (!top || top.savingsPotential <= 0) {
     return (
       <Shell>
-        <EmptyState note={top ? `We see $${Math.round(top.monthlyProjection)} on ${top.merchant} — not enough to swap.` : undefined} />
+        <EmptyState
+          note={
+            top
+              ? `We see $${Math.round(top.monthlyProjection)} on ${top.merchant} — not enough to swap.`
+              : undefined
+          }
+        />
       </Shell>
     );
   }
@@ -70,27 +80,45 @@ export default function HomePage() {
           transition={{ duration: 0.55, delay: 0.22 }}
           className="mt-5"
         >
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-leak">
-            QUIET DRAIN · LAST 30 DAYS
+          <p className="text-micro text-baltic dark:text-icy">
+            SHOWS UP A LOT · LAST 30 DAYS
           </p>
-          <h1 className="mt-2 text-[56px] font-semibold leading-[0.95] tracking-tight nums">
+          <h1 className="mt-2 text-[54px] font-extrabold leading-[0.96] tracking-[-0.02em] nums text-ink dark:text-snow">
             <CountUp to={top.monthlyProjection} delay={0.3} duration={1.2} />
           </h1>
-          <p className="mt-2 text-[17px] leading-snug text-ink-200">
-            {top.headline}{" "}
-            <span className="text-ink-400">
-              {top.subhead} That&apos;s{" "}
-              <span className="text-ink-100 font-semibold nums">{hours}</span> hours of your
-              paycheck.
-            </span>
+          <p className="mt-3 text-headline text-ink dark:text-snow">
+            {top.headline}
           </p>
+          <p className="mt-1 text-callout text-ink-60 dark:text-snow-60">
+            {top.subhead} At your hourly rate, about{" "}
+            <span className="text-ink dark:text-snow font-semibold nums">{hours}</span>{" "}
+            hours of work.
+          </p>
+
+          {topLeakRatings && topLeakRatings.rated > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-ink-10 px-3 py-1.5 dark:border-white/10"
+            >
+              <span className="h-2 w-2 rounded-full bg-baltic dark:bg-icy" />
+              <span className="text-caption text-ink-60 dark:text-snow-60">
+                You rated{" "}
+                <span className="text-ink dark:text-snow font-semibold">
+                  {topLeakRatings.regret} of {topLeakRatings.rated}
+                </span>{" "}
+                as regret
+              </span>
+            </motion.div>
+          )}
         </motion.section>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.42 }}
-          className="mt-5"
+          className="mt-6"
         >
           <WhatThatBuys amount={top.monthlyProjection} />
         </motion.div>
@@ -99,19 +127,22 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.55 }}
-          className="mt-4"
+          className="mt-3"
         >
-          <Link href={`/leak/${encodeURIComponent(top.id)}`} className="block press">
-            <Card tone="warm" className="flex items-center justify-between">
+          <Link
+            href={`/leak/${encodeURIComponent(top.id)}`}
+            className="block press"
+          >
+            <Card tone="icy" className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-leak/90">
-                  PLUG THIS LEAK
+                <p className="text-micro text-baltic dark:text-icy">
+                  SEE A CHEAPER SWAP
                 </p>
-                <p className="mt-1 text-base font-semibold">
-                  Save ~${top.savingsPotential}/mo — one switch covers most of it
+                <p className="mt-1 text-headline text-ink dark:text-snow">
+                  About ${top.savingsPotential}/mo back in your pocket
                 </p>
               </div>
-              <ChevronRight className="text-amber-leak" size={22} />
+              <ChevronRight className="text-baltic dark:text-icy" size={24} />
             </Card>
           </Link>
         </motion.div>
@@ -123,8 +154,8 @@ export default function HomePage() {
             transition={{ duration: 0.55, delay: 0.7 }}
             className="mt-10"
           >
-            <h2 className="text-[11px] font-semibold tracking-[0.22em] text-ink-400">
-              SMALLER LEAKS
+            <h2 className="text-micro text-ink-40 dark:text-snow-60">
+              ALSO COMING UP OFTEN
             </h2>
             <div className="mt-3 space-y-3">
               {secondary.map((leak) => (
@@ -137,18 +168,24 @@ export default function HomePage() {
                     <div className="flex items-center gap-3">
                       <CategoryIcon category={leak.category} />
                       <div>
-                        <p className="font-semibold">{leak.merchant}</p>
-                        <p className="text-xs text-ink-400">
+                        <p className="text-headline text-ink dark:text-snow">
+                          {leak.merchant}
+                        </p>
+                        <p className="text-caption text-ink-60 dark:text-snow-60">
                           {leak.occurrences} charges · avg ${leak.avgTicket.toFixed(0)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold nums">
+                      <p className="text-headline nums text-ink dark:text-snow">
                         ${leak.monthlyProjection.toFixed(0)}
-                        <span className="text-xs font-normal text-ink-400">/mo</span>
+                        <span className="text-caption text-ink-40 dark:text-snow-60">
+                          /mo
+                        </span>
                       </p>
-                      <p className="text-[11px] text-mint">save ${leak.savingsPotential}</p>
+                      <p className="text-caption text-baltic dark:text-icy">
+                        save ${leak.savingsPotential}
+                      </p>
                     </div>
                   </Card>
                 </Link>
@@ -163,19 +200,17 @@ export default function HomePage() {
           transition={{ duration: 0.55, delay: 0.85 }}
           className="mt-10"
         >
-          <Card tone="mint">
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-mint">
-              IF YOU PLUG ALL OF THEM
-            </p>
-            <p className="mt-2 text-3xl font-semibold nums">
+          <Card tone="ink">
+            <p className="text-micro text-icy">IF YOU TAKE EVERY SWAP</p>
+            <p className="mt-2 text-title1 nums text-snow">
               <CountUp to={scan.monthlySavings} delay={0.9} duration={1} />
-              <span className="text-base font-medium text-ink-300">/mo</span>
+              <span className="text-body text-snow-60">/mo</span>
             </p>
-            <p className="mt-1 text-sm text-ink-300">
-              <span className="text-ink-100 font-semibold nums">
+            <p className="mt-1 text-callout text-snow-60">
+              <span className="text-snow font-semibold nums">
                 ${(scan.monthlySavings * 12).toLocaleString()}
               </span>{" "}
-              a year, without touching your lifestyle much.
+              a year. Three of those and you&apos;ve funded a flight home.
             </p>
           </Card>
         </motion.section>
@@ -187,12 +222,12 @@ export default function HomePage() {
 function Header({ name }: { name: string }) {
   return (
     <div className="flex items-center justify-between">
-      <p className="text-xs font-medium tracking-widest text-ink-400">
+      <p className="text-micro text-ink-40 dark:text-snow-60">
         HEY, {name.toUpperCase()}
       </p>
       <Link
         href="/profile"
-        className="press flex h-9 w-9 items-center justify-center rounded-full bg-ink-800 text-sm font-semibold text-ink-200"
+        className="press flex h-9 w-9 items-center justify-center rounded-full bg-icy text-baltic font-bold dark:bg-baltic/20 dark:text-icy"
       >
         {name.slice(0, 1).toUpperCase()}
       </Link>
@@ -203,15 +238,19 @@ function Header({ name }: { name: string }) {
 function EmptyState({ note }: { note?: string }) {
   return (
     <div className="flex min-h-[70dvh] flex-col items-center justify-center px-8 text-center safe-top">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-mint/10">
-        <span className="text-4xl text-mint">✓</span>
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-icy-softer dark:bg-baltic/20">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke="currentColor" className="text-baltic dark:text-icy" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
       </div>
-      <h1 className="text-3xl font-semibold tracking-tight">You&apos;re in good shape.</h1>
-      <p className="mt-3 leading-snug text-ink-300">
-        Nothing big enough to swap right now. We&apos;ll keep watching — patterns shift after
-        payday.
+      <h1 className="text-title1 text-ink dark:text-snow">You&apos;re steady.</h1>
+      <p className="mt-3 text-body text-ink-60 dark:text-snow-60">
+        Nothing big enough to swap right now. We&apos;ll keep watching — patterns
+        shift after payday.
       </p>
-      {note && <p className="mt-4 text-xs text-ink-500">{note}</p>}
+      {note && (
+        <p className="mt-4 text-caption text-ink-40 dark:text-snow-60">{note}</p>
+      )}
     </div>
   );
 }
@@ -219,11 +258,11 @@ function EmptyState({ note }: { note?: string }) {
 function LoadingSkeleton() {
   return (
     <div className="px-5 pt-12 safe-top">
-      <div className="h-3 w-24 rounded-full bg-ink-800 animate-pulse-slow" />
-      <div className="mt-6 h-4 w-44 rounded-full bg-ink-800 animate-pulse-slow" />
-      <div className="mt-4 h-16 w-64 rounded-xl bg-ink-800 animate-pulse-slow" />
-      <div className="mt-4 h-24 w-full rounded-xl bg-ink-800 animate-pulse-slow" />
-      <div className="mt-6 h-40 w-full rounded-xl bg-ink-800 animate-pulse-slow" />
+      <div className="h-3 w-24 rounded-full bg-ink-5 animate-pulse-slow dark:bg-white/5" />
+      <div className="mt-6 h-4 w-44 rounded-full bg-ink-5 animate-pulse-slow dark:bg-white/5" />
+      <div className="mt-4 h-16 w-64 rounded-xl bg-ink-5 animate-pulse-slow dark:bg-white/5" />
+      <div className="mt-4 h-24 w-full rounded-xl bg-ink-5 animate-pulse-slow dark:bg-white/5" />
+      <div className="mt-6 h-40 w-full rounded-xl bg-ink-5 animate-pulse-slow dark:bg-white/5" />
     </div>
   );
 }

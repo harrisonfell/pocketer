@@ -11,7 +11,7 @@ export function Shell({
   hideNav?: boolean;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col bg-[color:var(--bg)] text-[color:var(--text)]">
       <main className={cn("flex-1 overflow-y-auto pb-4", className)}>{children}</main>
       {!hideNav && <BottomNav />}
     </div>
