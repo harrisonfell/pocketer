@@ -10,6 +10,7 @@ import { CountUp } from "@/components/count-up";
 import { useSession } from "@/components/session-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { WeekPips } from "@/components/week-pips";
 
 export default function SwitchesPage() {
   const { hydrated, archetype, switches, removeSwitch } = useSession();
@@ -34,15 +35,25 @@ export default function SwitchesPage() {
         >
           <Card tone="mint">
             <p className="text-xs font-medium tracking-widest text-mint">
-              PROJECTED — THIS MONTH
+              STAYING IN YOUR POCKET
             </p>
             <p className="mt-2 text-5xl font-semibold nums">
               <CountUp to={projected} />
+              <span className="text-xl font-medium text-ink-300">/mo</span>
             </p>
-            <p className="mt-2 text-sm text-ink-300">
-              staying in your pocket. We&apos;ll redirect this to savings automatically when
-              that feature ships.
-            </p>
+            {projected > 0 ? (
+              <p className="mt-2 text-sm text-ink-300">
+                That&apos;s{" "}
+                <span className="nums font-semibold text-ink-100">
+                  ${(projected * 12).toLocaleString()}
+                </span>{" "}
+                a year — if you keep the switches going.
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-ink-300">
+                Accept a switch and watch this number move.
+              </p>
+            )}
             <Button
               disabled
               size="md"
@@ -50,7 +61,7 @@ export default function SwitchesPage() {
               className="mt-4"
               title="Coming soon"
             >
-              Redirect to savings (soon)
+              Auto-redirect to savings → soon
             </Button>
           </Card>
         </motion.section>
@@ -73,30 +84,33 @@ export default function SwitchesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.04 * i }}
               >
-                <Card className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{s.alternativeName}</p>
-                    <p className="text-xs text-ink-400">
-                      Started {new Date(s.acceptedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      · active
-                    </p>
+                <Card>
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1 pr-3">
+                      <p className="truncate font-semibold">{s.alternativeName}</p>
+                      <p className="text-xs text-ink-400">
+                        Started{" "}
+                        {new Date(s.acceptedAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <WeekPips startedISO={s.acceptedAt} />
+                    </div>
+                    <div className="text-right">
+                      <p className="nums text-lg font-semibold text-mint">
+                        +${s.projectedMonthlySavings}
+                      </p>
+                      <p className="text-[10px] text-ink-400">/mo</p>
+                    </div>
+                    <button
+                      onClick={() => removeSwitch(s.id)}
+                      className="press ml-3 flex h-9 w-9 items-center justify-center rounded-full text-ink-500 hover:text-rose-warn"
+                      aria-label="Drop switch"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <div className="text-right">
-                    <p className="nums text-lg font-semibold text-mint">
-                      +${s.projectedMonthlySavings}
-                    </p>
-                    <p className="text-[10px] text-ink-400">/mo</p>
-                  </div>
-                  <button
-                    onClick={() => removeSwitch(s.id)}
-                    className="press ml-3 flex h-9 w-9 items-center justify-center rounded-full text-ink-500 hover:text-rose-warn"
-                    aria-label="Drop switch"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </Card>
               </motion.li>
             ))}

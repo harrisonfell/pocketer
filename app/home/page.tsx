@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
@@ -13,17 +13,35 @@ import { useScan } from "@/lib/use-scan";
 import { hoursOfPaycheck } from "@/lib/utils";
 import { CategoryIcon } from "@/components/category-icon";
 import { WhatThatBuys } from "@/components/what-that-buys";
+import { ScanLoading } from "@/components/scan-loading";
+
+const SCAN_FLAG = "pocketer.scanned.v1";
 
 export default function HomePage() {
   const { hydrated, archetype, profile } = useSession();
   const router = useRouter();
   const scan = useScan();
+  const [scanComplete, setScanComplete] = useState(false);
 
   useEffect(() => {
     if (hydrated && !archetype) router.replace("/");
+    // Only show the full scan animation the first time after connect.
+    if (hydrated && typeof window !== "undefined") {
+      if (window.sessionStorage.getItem(SCAN_FLAG) === "done") {
+        setScanComplete(true);
+      }
+    }
   }, [hydrated, archetype, router]);
 
+  function finishScan() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(SCAN_FLAG, "done");
+    }
+    setScanComplete(true);
+  }
+
   if (!scan.ready) return <Shell><LoadingSkeleton /></Shell>;
+  if (!scanComplete) return <Shell><ScanLoading onDone={finishScan} /></Shell>;
 
   const top = scan.topLeak;
   const secondary = scan.leaks.slice(1, 4);

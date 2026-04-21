@@ -101,7 +101,7 @@ export default function LeakDetail() {
         <section className="mt-8">
           <p className="text-xs font-semibold tracking-widest text-mint">THE SWITCH</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight">
-            Pocketer&apos;s top pick for you
+            One change covers most of it.
           </h2>
 
           <AnimatePresence mode="wait">
