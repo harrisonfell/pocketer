@@ -155,7 +155,7 @@ export default function HomePage() {
             className="mt-10"
           >
             <h2 className="text-micro text-ink-40 dark:text-snow-60">
-              ALSO COMING UP OFTEN
+              ALSO ADDING UP
             </h2>
             <div className="mt-3 space-y-3">
               {secondary.map((leak) => (
