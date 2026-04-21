@@ -1,4 +1,5 @@
 import type { Category, Leak, Transaction } from "./types";
+import { rankAlternatives } from "./alternatives";
 
 const MIN_OCCURRENCES = 3;
 const WINDOW_DAYS = 30;
@@ -150,7 +151,7 @@ export function detectLeaks(transactions: Transaction[], opts: DetectOptions = {
     const merchant = displayMerchant(txns[0].category, merchantSet);
     const copy = copyForLeak(txns[0].category, merchant, merchantSet, totalSpend, txns.length);
 
-    leaks.push({
+    const draft: Leak = {
       id: `leak_${key}`,
       merchant,
       category: txns[0].category,
@@ -163,11 +164,32 @@ export function detectLeaks(transactions: Transaction[], opts: DetectOptions = {
       transactions: txns,
       headline: copy.headline,
       subhead: copy.subhead,
-    });
+    };
+
+    // Reconcile the headline savings with what alternatives can actually deliver.
+    // If the top viable alternative saves less than the category estimate, use the
+    // real number — we'd rather under-promise than ship a demo with a broken claim.
+    const ranked = rankAlternatives(draft);
+    if (ranked.length > 0) {
+      const realSavings = Math.round(ranked[0].estSavingsVsLeak(draft));
+      draft.savingsPotential = Math.min(dollars, realSavings);
+      draft.savingsPercent = draft.savingsPotential / Math.max(1, draft.monthlyProjection);
+    } else if (draft.category === "food_delivery") {
+      // No viable alternative — don't pretend. Zero out the claim; UI handles it.
+      draft.savingsPotential = 0;
+      draft.savingsPercent = 0;
+    }
+
+    leaks.push(draft);
   }
 
-  // Sort by monthly spend desc so the biggest leak surfaces first.
-  leaks.sort((a, b) => b.monthlyProjection - a.monthlyProjection);
+  // Sort by *achievable savings* desc. We care about leaks Pocketer can actually
+  // help with, not the ones that look biggest on paper.
+  leaks.sort(
+    (a, b) =>
+      b.savingsPotential - a.savingsPotential ||
+      b.monthlyProjection - a.monthlyProjection
+  );
   return leaks;
 }
 

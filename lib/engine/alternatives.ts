@@ -131,16 +131,16 @@ export function alternativesForCategory(category: Category): Alternative[] {
 
 export function rankAlternatives(leak: Leak): Alternative[] {
   const pool = alternativesForCategory(leak.category);
-  // Score: savings (weighted 0.55) + review (0.2) + ease (0.15) + feasibility (0.1 — do savings exist?)
-  return [...pool]
+  // Only surface alternatives that actually save money against this leak.
+  // If every alt costs more than the leak, we'd rather say nothing than lie.
+  const viable = pool.filter((alt) => alt.estSavingsVsLeak(leak) > 0);
+  return viable
     .map((alt) => {
       const savings = alt.estSavingsVsLeak(leak);
       const savingsScore = Math.min(1, savings / Math.max(50, leak.monthlyProjection));
       const reviewScore = (alt.reviewScore ?? 4) / 5;
       const easeScore = 1 - Math.min(1, (alt.prepMinutes ?? 10) / 90);
-      const feasibility = savings > 0 ? 1 : 0;
-      const score =
-        savingsScore * 0.55 + reviewScore * 0.2 + easeScore * 0.15 + feasibility * 0.1;
+      const score = savingsScore * 0.6 + reviewScore * 0.25 + easeScore * 0.15;
       return { alt, score };
     })
     .sort((a, b) => b.score - a.score)

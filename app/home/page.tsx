@@ -44,13 +44,15 @@ export default function HomePage() {
   if (!scanComplete) return <Shell><ScanLoading onDone={finishScan} /></Shell>;
 
   const top = scan.topLeak;
-  const secondary = scan.leaks.slice(1, 4);
+  const secondary = scan.leaks.slice(1, 4).filter((l) => l.savingsPotential > 0);
   const wage = profile?.hourlyWage ?? 24;
 
-  if (!top) {
+  // Nothing detected, or the best leak has no viable swap — show "good shape"
+  // with any observed spending noted honestly.
+  if (!top || top.savingsPotential <= 0) {
     return (
       <Shell>
-        <EmptyState />
+        <EmptyState note={top ? `We see $${Math.round(top.monthlyProjection)} on ${top.merchant} — not enough to swap.` : undefined} />
       </Shell>
     );
   }
@@ -118,10 +120,10 @@ export default function HomePage() {
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.5 }}
+            transition={{ duration: 0.55, delay: 0.7 }}
             className="mt-10"
           >
-            <h2 className="text-xs font-semibold tracking-widest text-ink-400">
+            <h2 className="text-[11px] font-semibold tracking-[0.22em] text-ink-400">
               SMALLER LEAKS
             </h2>
             <div className="mt-3 space-y-3">
@@ -158,21 +160,22 @@ export default function HomePage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.65 }}
+          transition={{ duration: 0.55, delay: 0.85 }}
           className="mt-10"
         >
           <Card tone="mint">
-            <p className="text-xs font-medium tracking-wide text-mint">
+            <p className="text-[11px] font-semibold tracking-[0.22em] text-mint">
               IF YOU PLUG ALL OF THEM
             </p>
             <p className="mt-2 text-3xl font-semibold nums">
-              <CountUp to={scan.monthlySavings} />/mo
+              <CountUp to={scan.monthlySavings} delay={0.9} duration={1} />
+              <span className="text-base font-medium text-ink-300">/mo</span>
             </p>
             <p className="mt-1 text-sm text-ink-300">
               <span className="text-ink-100 font-semibold nums">
                 ${(scan.monthlySavings * 12).toLocaleString()}
               </span>{" "}
-              in a year, without touching your lifestyle much.
+              a year, without touching your lifestyle much.
             </p>
           </Card>
         </motion.section>
@@ -197,17 +200,18 @@ function Header({ name }: { name: string }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ note }: { note?: string }) {
   return (
-    <div className="flex min-h-[70dvh] flex-col items-center justify-center px-8 text-center">
-      <div className="mb-6 h-20 w-20 rounded-full bg-mint/10 flex items-center justify-center">
-        <span className="text-4xl">✓</span>
+    <div className="flex min-h-[70dvh] flex-col items-center justify-center px-8 text-center safe-top">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-mint/10">
+        <span className="text-4xl text-mint">✓</span>
       </div>
       <h1 className="text-3xl font-semibold tracking-tight">You&apos;re in good shape.</h1>
-      <p className="mt-3 text-ink-300 leading-snug">
-        No major leaks detected in the last 30 days. We&apos;ll keep watching —
-        most people&apos;s patterns shift after payday.
+      <p className="mt-3 leading-snug text-ink-300">
+        Nothing big enough to swap right now. We&apos;ll keep watching — patterns shift after
+        payday.
       </p>
+      {note && <p className="mt-4 text-xs text-ink-500">{note}</p>}
     </div>
   );
 }

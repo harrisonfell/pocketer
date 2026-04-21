@@ -3,20 +3,21 @@ import "./globals.css";
 import { SessionProvider } from "@/components/session-provider";
 
 export const metadata: Metadata = {
-  title: "Pocketer — stop the leak",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://pocketer.app"
+  ),
+  title: "Pocketer — swap one habit, pocket the difference",
   description:
     "Pocketer finds the money quietly leaking out of your account and redirects it into savings.",
   openGraph: {
     title: "Pocketer",
-    description: "Your money, quietly redirected.",
+    description: "Swap one habit. Pocket the difference.",
     type: "website",
-    images: ["/og.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Pocketer",
-    description: "Your money, quietly redirected.",
-    images: ["/og.png"],
+    description: "Swap one habit. Pocket the difference.",
   },
 };
 
