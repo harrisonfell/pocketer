@@ -62,11 +62,22 @@ Hand-off doc. Read this before opening the preview.
 - **Do we want a "streak broken" state?** If a user orders DoorDash while on a Factor switch, do we detect and call it out gently? That's the future the framing implies but I didn't wire.
 - **Does "month 2" look different from "month 1"?** First month the Home hero is the leak. After the user has 3 switches, should Home be about their progress instead? I kept it leak-first throughout.
 
+## Phase 6 (bonus) — subscriptions wedge
+
+Added in the last hour as a proof-of-extensibility:
+
+- 3 extra "zombie" subs seeded into every archetype (Adobe CC, NY Times, Peloton App) on top of existing Netflix + Spotify.
+- Detector now treats subscriptions as leaks with a 1-occurrence floor (they're recurring by definition), while food/coffee still need 3+ observations.
+- `subscriptionAlternativesFor(leak)` generates Cancel (100% savings) + Downgrade (60% savings) options parameterized per subscription, so the CTA reads "Cancel Adobe CC" not "Try Cancel Adobe CC for a week."
+- Entire shell rendered subscription leaks without a single page-level change. That's the architecture claim, validated.
+
+**Demo impact:** the light archetype, which previously had no story ($50 delivery → no viable swap), now surfaces $81/mo in forgotten subscriptions with Cancel actions. Much stronger demo when flipping between archetypes.
+
 ## Suggested next 3 overnight tasks
 
-1. **Extend to subscriptions as a second category.** The architecture already supports it (`LEAKABLE` set, category-agnostic alternatives). Biggest missing category for the target demo. Wedge #2 = "you're paying $47/month for stuff you don't use." Low-hanging.
-2. **Build the /admin aggregate dashboard.** Run 1000 synthetic users through the engine and show distribution of leaks, average savings, acceptance rates by alternative. This becomes the investor slide. Bonus: add sliders to tweak `replaces` factors and see aggregate savings shift in real time.
-3. **Refine the accept flow into a real commitment.** Right now "Try Factor for a week" instantly creates a switch. There should be a mid-step — "What would make this stick?" — and a calendar ping. The 4-pip streak is wired but the commitment layer isn't. This is the part that actually separates the product from a spreadsheet.
+1. **Build the /admin aggregate dashboard.** Run 1000 synthetic users through the engine and show distribution of leaks, average savings, acceptance rates by alternative. This becomes the investor slide. Bonus: add sliders to tweak `replaces` factors and see aggregate savings shift in real time.
+2. **Refine the accept flow into a real commitment.** Right now "Try Factor for a week" instantly creates a switch. There should be a mid-step — "What would make this stick?" — and a calendar ping. The 4-pip streak is wired but the commitment layer isn't. This is the part that actually separates the product from a spreadsheet.
+3. **Add coffee + rideshare as a third and fourth wedge.** The engine detects both already but there are no alternatives yet. Coffee: "make it at home" / "use your office's free one" / "downgrade size." Rideshare: "bus route X takes 6 more minutes" / "walk (15 min)." Once those land, the product has four legitimate wedges for a full launch.
 
 ## Decisions I made that deserve a second look
 
