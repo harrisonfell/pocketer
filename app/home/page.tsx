@@ -55,31 +55,31 @@ export default function HomePage() {
     );
   }
 
+  const hours = Math.round(hoursOfPaycheck(top.monthlyProjection, wage));
+
   return (
     <Shell>
-      <div className="px-5 pb-8 pt-12 safe-top">
+      <div className="px-5 pb-8 pt-10 safe-top">
         <Header name={profile?.displayName ?? "you"} />
 
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.1 }}
-          className="mt-6"
+          transition={{ duration: 0.55, delay: 0.22 }}
+          className="mt-5"
         >
-          <p className="text-sm font-medium tracking-wide text-amber-leak">
-            YOUR BIGGEST LEAK — LAST 30 DAYS
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-leak">
+            QUIET DRAIN · LAST 30 DAYS
           </p>
-          <h1 className="mt-3 text-[64px] font-semibold leading-none tracking-tight nums">
-            <CountUp to={top.monthlyProjection} />
+          <h1 className="mt-2 text-[56px] font-semibold leading-[0.95] tracking-tight nums">
+            <CountUp to={top.monthlyProjection} delay={0.3} duration={1.2} />
           </h1>
-          <p className="mt-3 text-lg leading-snug text-ink-200">
-            {top.headline}
-            <br />
+          <p className="mt-2 text-[17px] leading-snug text-ink-200">
+            {top.headline}{" "}
             <span className="text-ink-400">
-              That&apos;s <span className="text-ink-200 font-semibold nums">
-                {hoursOfPaycheck(top.monthlyProjection, wage)}
-              </span>{" "}
-              hours of your paycheck, gone to {top.merchant}.
+              {top.subhead} That&apos;s{" "}
+              <span className="text-ink-100 font-semibold nums">{hours}</span> hours of your
+              paycheck.
             </span>
           </p>
         </motion.section>
@@ -87,8 +87,8 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.25 }}
-          className="mt-6"
+          transition={{ duration: 0.55, delay: 0.42 }}
+          className="mt-5"
         >
           <WhatThatBuys amount={top.monthlyProjection} />
         </motion.div>
@@ -96,23 +96,20 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.35 }}
-          className="mt-5"
+          transition={{ duration: 0.55, delay: 0.55 }}
+          className="mt-4"
         >
           <Link href={`/leak/${encodeURIComponent(top.id)}`} className="block press">
             <Card tone="warm" className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium tracking-wide text-amber-leak/90">
+                <p className="text-[11px] font-semibold tracking-[0.22em] text-amber-leak/90">
                   PLUG THIS LEAK
                 </p>
                 <p className="mt-1 text-base font-semibold">
-                  Save ~${top.savingsPotential}/mo
-                </p>
-                <p className="text-xs text-ink-400">
-                  3 substitutes inside
+                  Save ~${top.savingsPotential}/mo — one switch covers most of it
                 </p>
               </div>
-              <ChevronRight className="text-amber-leak" />
+              <ChevronRight className="text-amber-leak" size={22} />
             </Card>
           </Link>
         </motion.div>

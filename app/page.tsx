@@ -45,20 +45,20 @@ export default function Landing() {
         </div>
 
         <h1 className="text-[44px] font-semibold leading-[1.02] tracking-tight">
-          See where your money&apos;s
+          Swap one habit.
           <br />
-          <span className="text-mint">actually going.</span>
+          <span className="text-mint">Pocket the difference.</span>
         </h1>
 
         <p className="mt-5 text-lg leading-snug text-ink-300">
-          We scan your spending, flag the stuff that&apos;s quietly draining your account, and
-          show you exactly what to swap — then move the savings into your pocket.
+          Pocketer scans where your money quietly leaks — DoorDash, that forgotten subscription,
+          the latte habit — and shows you one cheaper swap. Savings go straight into your pocket.
         </p>
 
         <ul className="mt-10 space-y-4 text-ink-300">
           <Bullet>Not a budget. You won&apos;t track a single thing.</Bullet>
           <Bullet>Not a lecture. We don&apos;t tell you to &quot;stop spending.&quot;</Bullet>
-          <Bullet>Just the switches that pay for themselves.</Bullet>
+          <Bullet>Just the switch that pays for itself.</Bullet>
         </ul>
       </motion.div>
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 interface Props {
   to: number;
   duration?: number;
+  delay?: number;
   prefix?: string;
   suffix?: string;
   decimals?: number;
@@ -15,6 +16,7 @@ interface Props {
 export function CountUp({
   to,
   duration = 1.1,
+  delay = 0,
   prefix = "$",
   suffix = "",
   decimals = 0,
@@ -26,11 +28,12 @@ export function CountUp({
   useEffect(() => {
     const controls = animate(mv, to, {
       duration,
+      delay,
       ease: [0.22, 1, 0.36, 1],
       onUpdate: (v) => setDisplay(v),
     });
     return () => controls.stop();
-  }, [to, duration, mv]);
+  }, [to, duration, delay, mv]);
 
   const formatted =
     decimals > 0
